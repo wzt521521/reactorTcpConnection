@@ -1,7 +1,8 @@
 #pragma once
 
-#include <cstddef>   // size_t
-#include <unistd.h>  // ssize_t
+#include <cstddef>    // size_t
+#include <cstdint>    // uint32_t / uint16_t
+#include <unistd.h>   // ssize_t
 #include <vector>
 
 // 应用层接收/发送缓冲区
@@ -23,12 +24,15 @@ public:
 
     //获取读指针前面有多少空间（含8字节预留区）
     size_t getPreRead() const;
-    //获取预留区之外、读指针前方真正可用于腾挪的空间
-    size_t getPreReadCanWriteForData() const;
     //获取有多少写入空间
     size_t getWriteable() const;
     //获取有多少可读的内容
     size_t getReadable() const;
+
+    //从可读区起始处读取4字节网络序整数（总长度字段）
+    uint32_t peekInt32() const;
+    //从可读区起始处偏移4字节读取2字节网络序整数（cmd字段）
+    uint16_t peekInt16() const;
 
     //前置写入（封装协议头用）
     void prepend(size_t len, const char* data);
@@ -42,6 +46,8 @@ public:
     //从fd批量读入数据
     //返回值：>0 读到的字节数；0 对端关闭(FIN)；<0 出错，错误码在saveErrno中
     ssize_t readFromSocket(int fd, int* saveErrno);
+    //消耗len字节：len<可读量时移动读指针，否则双指针复位到预留区末尾
+    void retrieve(size_t len);
 
 private:
     std::vector<char> buffer_;
