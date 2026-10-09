@@ -1,5 +1,8 @@
 ﻿#include "EventLoop.hpp"
 
+#include <cerrno>   // errno / EINTR
+#include <cstdio>   // perror
+
 // 静态整型常量的类外定义，避免低标准下ODR-use的链接错误
 constexpr size_t EventLoop::maxLenOfevent;
 
@@ -16,7 +19,12 @@ void EventLoop::Loops() {
 	while (true) {
 		int n = epoll_wait(epollfd, vecOfevent.data(),
 		                   static_cast<int>(vecOfevent.size()), -1);
-		for (size_t i = 0; i < n; i++) {
+		if (n < 0) {
+			if (errno == EINTR)continue;
+			perror("epoll_wait");
+			break;
+		}
+		for (int i = 0; i < n; i++) {
 			// 事件带回的ptr就是注册时预埋的Channel指针
 			static_cast<Channel*>(vecOfevent[i].data.ptr)
 				->handleEvent(vecOfevent[i].events);
@@ -35,4 +43,9 @@ void EventLoop::updateChannel(Channel* chan) {
 		epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &ev);  // 未注册：新增
 		channels_[fd] = chan;
 	}
+}
+
+void EventLoop::removeChannel(Channel* ch) {
+	epoll_ctl(epollfd, EPOLL_CTL_DEL, ch->getFd(), nullptr);//从epoll内核中删除
+	channels_.erase(ch->getFd());//从map中删除
 }

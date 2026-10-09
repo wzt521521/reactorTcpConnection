@@ -29,6 +29,10 @@ void Channel::disableAll() {
 	events = 0;
 }
 
+bool Channel::isWriting() const {
+	return (events & EPOLLOUT) != 0;
+}
+
 void Channel::setReadCallback(EventCallback cb) {
 	readCallback = std::move(cb);
 }
@@ -45,7 +49,18 @@ void Channel::setErrorCallback(EventCallback cb) {
 	errorCallback = std::move(cb);
 }
 
+// 绑定持有者对象，弱引用不增加引用计数
+void Channel::tie(const std::shared_ptr<void>& obj) {
+	tie_ = obj;
+	tied_ = true;
+}
+
 void Channel::handleEvent(uint32_t revents) {
+	std::shared_ptr<void> guard; // 栈上强引用，为持有者对象续命
+	if (tied_) {
+		guard = tie_.lock(); // 弱引用升级为强引用
+		if (!guard) return;  // 升级失败说明持有者已销毁，丢弃事件
+	}
 	// 对端挂断且没有剩余可读数据，通知上层关闭
 	if ((revents & EPOLLHUP) && !(revents & EPOLLIN) && closeCallback) {
 		closeCallback();

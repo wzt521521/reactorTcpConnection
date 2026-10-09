@@ -20,6 +20,9 @@ public:
 	// 把Channel注册到epoll，已存在则修改关注事件
 	void updateChannel(Channel* chan);
 
+	// 把Channel从epoll移除，同时从映射表删除
+	void removeChannel(Channel* ch);
+
 private:
 	static constexpr size_t maxLenOfevent = 16;  // 单轮epoll_wait最多返回的事件数
 	int epollfd;
