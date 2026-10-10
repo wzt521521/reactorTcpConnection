@@ -23,6 +23,15 @@ public:
 	void setCloseCallback(CloseCallback cb);
 	void setMessageCallback(MessageCallback cb);
 
+	//业务处理
+	void setContext(std::shared_ptr<void> c) {
+		context_ = std::move(c);
+	}
+	template<typename T>
+	std::shared_ptr<T> getContext() const {
+		return std::static_pointer_cast<T>(context_);
+	}
+
 	//连接建立完成：切状态、注册读事件
 	void connectionSuccess();
 
@@ -52,4 +61,5 @@ private:
 	Buffer OutputBuffer;
 	CloseCallback closeCallback_;
 	MessageCallback messageCallback_;
+	std::shared_ptr<void> context_; // 类型擦除的业务会话上下文
 };

@@ -9,7 +9,7 @@ void Packet::setFrameCallback(FrameCallback cb) {
 }
 
 //解码：从buf循环切出完整帧，半包留在buf中等待后续数据
-bool Packet::decode(Buffer* buf) {
+bool Packet::decode(const Tcpconnection::Ptr& conn, Buffer* buf) {
     while (buf->getReadable() >= 4) {
         //先获得首部4字节总长度
         uint32_t total = buf->peekInt32();
@@ -22,7 +22,7 @@ bool Packet::decode(Buffer* buf) {
         //先拷贝出body，再消费整帧，顺序不能反
         std::string body(buf->peekRead() + KHeaderLen, total - KHeaderLen);
         buf->retrieve(total);
-        if (frameCallback_) frameCallback_(cmd, body);
+        if (frameCallback_) frameCallback_(conn,cmd, body);
     }
     return true;
 }
