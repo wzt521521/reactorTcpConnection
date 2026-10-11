@@ -11,6 +11,7 @@
 // epoll事件循环：持有epoll实例，管理所有注册的Channel，阻塞等待并分发事件
 class EventLoop {
 public:
+	using task = function<void()>;
 	EventLoop();
 	~EventLoop();
 
@@ -23,7 +24,20 @@ public:
 	// 把Channel从epoll移除，同时从映射表删除
 	void removeChannel(Channel* ch);
 
+	bool EventLoop::isInLoopThread() const {
+		return tid_ == std::this_thread::get_id();
+	}
+	void EventLoop::quit() {
+		quit_.store(true);
+	}
+
+
+
+
 private:
+	thread::it tid_;
+	atomic<bool>quit_{ false };
+
 	static constexpr size_t maxLenOfevent = 16;  // 单轮epoll_wait最多返回的事件数
 	int epollfd;
 	std::vector<struct epoll_event> vecOfevent;

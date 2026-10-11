@@ -6,8 +6,9 @@
 // 静态整型常量的类外定义，避免低标准下ODR-use的链接错误
 constexpr size_t EventLoop::maxLenOfevent;
 
-EventLoop::EventLoop() {
-	epollfd = epoll_create1(EPOLL_CLOEXEC);
+EventLoop::EventLoop()
+	: epollfd(::epoll_create1(EPOLL_CLOEXEC)),
+	tid_(std::this_thread::get_id()) {
 	vecOfevent.resize(maxLenOfevent);
 }
 
@@ -16,7 +17,7 @@ EventLoop::~EventLoop() {
 }
 
 void EventLoop::Loops() {
-	while (true) {
+	while (!quit_load()) {
 		int n = epoll_wait(epollfd, vecOfevent.data(),
 		                   static_cast<int>(vecOfevent.size()), -1);
 		if (n < 0) {
