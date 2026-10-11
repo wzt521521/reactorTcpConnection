@@ -88,7 +88,7 @@ void Tcpconnection::handleRead() {
 			//说明成功读取到了部分数据
 			//不进行任何业务处理，只是负责把数据从内核缓冲区读取到业务缓冲区buffer
 			//调用上层回调函数，交由上层处理
-			messageCallback_(shared_from_this(), &InputBuffer);
+			messageCallback_(shared_from_this(), &InputBuffer);//在当前main注入逻辑中，此时是调用decode
 		}
 		else if (n == 0) {
 			//对端已经发送完了，可以关闭连接
@@ -96,7 +96,7 @@ void Tcpconnection::handleRead() {
 			return;
 		}
 		else {
-			if (err == EAGAIN || err == EWOULDBLOCK)break;
+			if (err == EAGAIN || err == EWOULDBLOCK) break;//如果是半包则跳出即可，否则进入下面的错误处理
 			handleClose();return;
 		}
 	}

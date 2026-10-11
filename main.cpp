@@ -2,7 +2,6 @@
 #include <memory>       // std::make_shared / std::shared_ptr
 #include <string>
 #include <unordered_map>
-
 #include "Acceptor.hpp"
 #include "Commands.hpp"
 #include "Dispatcher.hpp"
@@ -39,12 +38,6 @@ int main() {
             }
             conn->sendPacket(kCmdChat, s->username + " 说: " + body);
         });
-
-    // 下面两行原代码参数为空、无法编译，先注释掉：
-    // kCmdNotice 由定时器主动推送，timer 未实现暂不注册；
-    // kCmdError 无需注册，dispatcher 对未知命令会自动回错误帧。
-    //dispatcher.registerHandler(kCmdNotice, );
-    //dispatcher.registerHandler(kCmdError, );
 
     // decode 切出完整帧后的回调：此时帧已从 buffer 解析好，交给分发器按 cmd 路由
     codec.setFrameCallback([&](const Tcpconnection::Ptr& conn, uint16_t cmd, const std::string& body) {
