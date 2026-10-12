@@ -44,6 +44,34 @@ void Tcpconnection::connectionSuccess() {
 
 //这个指把body尝试直接发送到客户端
 void Tcpconnection::sendPacket(uint16_t cmd, const std::string& body) {
+	//原发送逻辑已经迁移到了sendPacketInLoop()
+
+	//下面的逻辑主要是在判断是否属于当前线程，如果属于则直接运行
+	//如果不属于，则进入跨线程的任务推送
+	if (state != kConnected) {
+		return;
+	}
+
+	//模拟情景：
+	//假如此时是线程A正在运行，但是loop_是指向线程B的，这里称为loop_B
+	//那么调用loop_B->isInLoopThread()必然返回false
+	//则根据loop_的所拥有关系，此时应该是处于线程B的tcpconnection
+	//那么调用loop_->queueInLoop([self, cmd, body] ...
+	//必然是往线程B的队列里面推送任务，即线程A正在运行，但是线程A往正在休眠的线程B的任务队列里面推送属于线程B自己的任务
+	//这样的话就可以保证任务的正确划分
+	if (loop_->isInLoopThread()) {
+		sendPacketInLoop(cmd, body);
+	}
+	else {
+		auto self = shared_from_this();
+		//按值捕获
+		loop_->queueInLoop([self, cmd, body] {
+			self->sendPacketInLoop(cmd, body);
+			});
+	}
+}
+
+void Tcpconnection::sendPacketInLoop(uint16_t cmd, const std::string& body) {
 	if (state != kConnected)return;
 	//经过encode buffer里面已经有完整的协议了
 	Packet::encode(&OutputBuffer, cmd, body);
@@ -73,9 +101,25 @@ void Tcpconnection::sendPacket(uint16_t cmd, const std::string& body) {
 	//注意，这个并没有while死循环，也就是只会尝试发送一次，如果没有发完，就会剩下到buffer里面，交给handlewrite处理
 }
 
+void Tcpconnection::forceCloseInLoop() {
+	if (state == kDisconnected) {
+		return;
+	}
+
+	handleClose();
+}
+
 //强制关闭连接
 void Tcpconnection::forceClose() {
-	handleClose();
+	if (loop_->isInLoopThread()) {
+		forceCloseInLoop();
+	}
+	else {
+		auto self = shared_from_this();
+		loop_->queueInLoop([self] {
+			self->forceCloseInLoop();
+			});
+	}
 }
 
 //指从socket进行读取然后装填到buffer

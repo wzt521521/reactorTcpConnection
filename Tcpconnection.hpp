@@ -27,6 +27,7 @@ public:
 	void setContext(std::shared_ptr<void> c) {
 		context_ = std::move(c);
 	}
+	//执向void对象，然后让业务层自己指定转换为什么对象，这里不作校验
 	template<typename T>
 	std::shared_ptr<T> getContext() const {
 		return std::static_pointer_cast<T>(context_);
@@ -41,6 +42,10 @@ public:
 	//强制关闭连接
 	void forceClose();
 
+	EventLoop* getLoop() const {
+		return loop_;
+	}
+
 private:
 	//指从socket进行读取然后装填到buffer
 	void handleRead();
@@ -50,6 +55,9 @@ private:
 	void handleClose();
 	//错误事件处理
 	void handleError();
+	//现在变为多线程模型，需要确保在本线程内进行处理
+	void sendPacketInLoop(uint16_t cmd, const std::string& body);
+	void forceCloseInLoop();
 
 	EventLoop* loop_;
 	int fd;

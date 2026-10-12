@@ -21,7 +21,7 @@ public:
 private:
     void threadFunc();
 
-    EventLoop* loop_;
+    EventLoop* loop_;//快速访问，loop对象由子线程的栈持有，线程类实例持有线程，线程的栈持有eventloop，这里的线程类的loop指针仅仅作为快速访问
     std::thread thread_;
     std::mutex mtx_;
     std::condition_variable cv_;

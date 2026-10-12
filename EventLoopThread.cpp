@@ -8,10 +8,17 @@ EventLoopThread::EventLoopThread(ThreadInitCallback cb, std::string name)
     name_(std::move(name)) {
 }
 
+
+//调用loop_->quit()，同时回收线程
 EventLoopThread::~EventLoopThread() {
-    if (loop_) {
-        loop_->quit();
+    {
+        std::lock_guard<std::mutex> lock(mtx_);
+
+        if (loop_ != nullptr) {
+            loop_->quit();
+        }
     }
+
     if (thread_.joinable()) {
         thread_.join();
     }
