@@ -5,5 +5,8 @@
 # 只放行头文件和源文件
 !*.hpp
 !*.cpp
+# 放行构建入口和测试脚本
+!CMakeLists.txt
+!tests/*.py
 # 放行规则文件本身，随仓库一起提交
 !.gitignore

@@ -49,7 +49,7 @@ private:
     std::thread::id tid_;
     Channel wakeupChannel_;
     std::mutex mtx_;
-    // 跨线程投递过来的任务队列
+    // 任务队列
     std::vector<Functor> pendingFunctors_;
     // 当前是否正在执行排队任务；用于判断本线程新投递任务时是否需要唤醒
     std::atomic<bool> callingPendingFunctors_{false};
